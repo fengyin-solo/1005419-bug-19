@@ -36,14 +36,21 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th v-for="column in tableColumns" :key="column">{{ column }}</th>
           <th>当前状态</th>
           <th>可执行动作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td v-for="column in tableColumns" :key="column">
+            <template v-if="column === '巡查编号'">
+              {{ row[column] ?? '—' }}
+              <span v-if="row['重点测点'] === true" class="tag tag-warn">重点测点</span>
+            </template>
+            <template v-else-if="column === '监测方式'">{{ monitorMethodOf(row) }}</template>
+            <template v-else>{{ row[column] ?? '—' }}</template>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -58,13 +65,14 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无群测群防巡查数据，可先登记巡查记录</td>
+          <td :colspan="tableColumns.length + 2" class="empty-state">暂无群测群防巡查数据，可先登记巡查记录</td>
         </tr>
       </tbody>
     </table>
 
     <footer class="page-foot">
       <span>共 {{ total }} 条群测群防巡查记录</span>
+      <span>重点测点由边坡形变「标记加剧」结论驱动，同一测点编号只挂一条、反复提交不叠加；监测方式统一以边坡形变台账为准</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -79,13 +87,15 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { resolveMonitorMethod } from '@/data/slope-domain'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('patrol')
 const columns = ["巡查编号", "所属隐患点", "巡查人", "巡查日期", "坡面情况", "排水情况", "巡查结论", "巡查状态"]
+// 监测方式列挂在「巡查人」后面：这一列只服务重点测点，普通巡查记录不填。
+const tableColumns = ["巡查编号", "所属隐患点", "巡查人", "监测方式", "巡查日期", "坡面情况", "排水情况", "巡查结论", "巡查状态"]
 const actions = ["提交巡查", "上报异常", "确认复核"]
 const statuses = ["待巡查", "已巡查", "发现异常", "已复核"]
-const stats = [{"label": "待巡查任务", "value": 0}, {"label": "发现异常次数", "value": 0}, {"label": "本月巡查次数", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -98,6 +108,20 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+const monthPrefix = new Date().toISOString().slice(0, 7)
+const stats = computed(() => [
+  { label: '待巡查任务', value: rows.value.filter((row) => String(row.status) === '待巡查').length },
+  { label: '发现异常次数', value: rows.value.filter((row) => String(row.status) === '发现异常').length },
+  {
+    label: '本月巡查次数',
+    value: rows.value.filter((row) => String(row['巡查日期'] ?? '').startsWith(monthPrefix)).length,
+  },
+])
+
+function monitorMethodOf(row: EntryRow): string {
+  return resolveMonitorMethod(row)
+}
 
 function resetFilters() {
   filters.value = {}
