@@ -3,7 +3,7 @@
     <header class="page-head">
       <div>
         <h2>群测群防巡查管理</h2>
-        <p class="page-desc">维护巡查记录，围绕巡查编号、所属隐患点、巡查人、巡查日期做登记、筛选与状态流转。</p>
+        <p class="page-desc">维护巡查记录，围绕巡查编号、所属隐患点、巡查人、巡查日期做登记、筛选与状态流转。边坡观测点标记加剧后自动生成一条重点测点；监测方式以边坡观测点记录为准，两处口径一致。</p>
       </div>
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记巡查记录</button>
@@ -22,6 +22,8 @@
       <span v-for="item in statusSummary" :key="item.status" class="legend-item">
         {{ item.status }}：{{ item.count }}
       </span>
+      <span class="legend-item">重点测点由边坡形变「标记加剧」联动生成，同一测点编号不重复建账</span>
+      <span class="legend-item">监测方式口径：以边坡观测点记录为权威源，台账侧冲突时以观测点为准</span>
     </p>
 
     <form class="filter-bar" @submit.prevent="reload">
@@ -82,7 +84,7 @@ import {
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('patrol')
-const columns = ["巡查编号", "所属隐患点", "巡查人", "巡查日期", "坡面情况", "排水情况", "巡查结论", "巡查状态"]
+const columns = ["巡查编号", "所属隐患点", "监测方式", "巡查人", "巡查日期", "坡面情况", "排水情况", "巡查结论", "巡查状态"]
 const actions = ["提交巡查", "上报异常", "确认复核"]
 const statuses = ["待巡查", "已巡查", "发现异常", "已复核"]
 const stats = [{"label": "待巡查任务", "value": 0}, {"label": "发现异常次数", "value": 0}, {"label": "本月巡查次数", "value": 0}]
